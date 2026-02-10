@@ -1,77 +1,63 @@
-# my-scraping-lab
+💎 POE2 Market Analysis Tool (Fate of the Vaal)
+This project is a dedicated market monitoring system for Path of Exile 2. It automates data collection from the POE.Ninja API, logs the history into CSV files, and generates visual price trend charts.
 
-# 🛡️ POE2 Market Analysis & Logger (Study Notes)
+🚀 Getting Started (Step-by-Step)
+1. Environment Setup
+Ensure your Python environment is isolated and clean:
 
-This project is designed to **automate the recording of POE2 market currency exchange rates** and save the data as a **CSV file** for long-term analysis.
+Create Environment: python -m venv venv
 
----
+Activate (Git Bash): source venv/Scripts/activate
 
-## 1️⃣ Step 1: Development Environment Management (venv)
+Install Dependencies:
 
-**What is venv?**
-A Virtual Environment is like an independent **"sandbox"**. Libraries installed inside (e.g., **Pandas**) won't affect other parts of your computer, ensuring the program runs consistently on any machine.
+Bash
+pip install requests pandas matplotlib
+2. Run the Data Logger
+Start the automated process to record market data:
 
-* **Activate**:
-    `source venv/Scripts/activate` (Git Bash)
-* **Deactivate**:
-    `deactivate`
-* **Install Necessary Tools**:
-    ```bash
-    pip install requests pandas
-    ```
+Command: python poe_analytics.py
 
----
+How it works: The script fetches currency prices for the Fate of the Vaal league every hour.
 
-## 2️⃣ Step 2: Data Detective (How to find the API)
+Storage: Data is appended to poe2_market_history.csv with timestamps.
 
-When the POE2 season updates, the API URL might change. Here is the process to find the new URL:
+Stop: Press Ctrl + C to safely close the logger.
 
-1.  Open Chrome and go to poe.ninja.
-2.  Press **F12** to open Developer Tools -> Switch to the **Network** Tab.
-3.  Type `overview` or `exchange` in the Filter box.
-4.  Refresh the page and find a link returning **JSON** format.
-5.  **Key Observation**: Check the data structure in `Preview` to find which field contains the price (e.g., `primaryValue`).
+3. Generate Trend Charts
+Once you have collected at least two data points, you can visualize the trends:
 
----
+Command: python plot_trends.py
 
-## 3️⃣ Step 3: Core Logic Analysis (Mapping & CSV)
+Function: It reads your CSV and opens a window showing the price curve for specific currencies (e.g., Divine Orbs or Alchemy Orbs).
 
-### 🧩 Data Mapping
-The data fetched from the API usually only has IDs (e.g., `alch`). We use a **Dictionary** to convert them into human-readable names:
-```python
-id_map = {'alch': 'Alchemy Orb', 'divine': 'Divine Orb'}
-name = id_map.get(curr_id, "Unknown")
-```
+🔍 Development Notes
+How to Update the API URL
+If the league changes (e.g., to Settlers2), follow these steps:
 
-### 📝 Writing to CSV (Logging)
-We use the `to_csv` function from Pandas and set `mode='a'` (Append):
+Open poe.ninja in your browser.
 
-*   **If the file does not exist**: Write **Header + Data**.
-*   **If the file exists**: Append **data only**, no Header.
+Press F12 -> Network Tab -> Filter by overview or exchange.
 
----
+Locate the JSON response and copy the Request URL.
 
-## 4️⃣ Step 4: Automation & Frequency Control (Wait Time)
+Update the URL variable in poe_analytics.py.
 
-To prevent being banned by the website (**IP Ban**), we must set a wait time:
+Data Mapping Logic
+ID Mapping: Since the API returns short IDs (e.g., alch), the script uses an id_map dictionary to convert them into readable names like Alchemy Orb.
 
-*   **Logic**: Use `while True:` combined with `time.sleep(3600)`.
+Price Calculation: The primaryValue represents the relative value (e.g., 1 small currency unit per 1 Divine). The script calculates 1 / value to get the actual exchange ratio (e.g., 1 Divine = 500 Alch).
 
-**Recommended Frequency**:
+⚠️ Best Practices & Warnings
+Rate Limiting: The default interval is 3600 seconds (1 hour). Do not set the wait time below 60 seconds, or you risk being IP-banned by POE.Ninja.
 
-*   **1 Hour (3600s)**: Safest, suitable for collecting long-term trends.
-*   **15 Minutes (900s)**: Suitable for tracking real-time fluctuations.
+Git Management: It is recommended to add *.csv to your .gitignore to avoid pushing large, outdated data files to GitHub.
 
-> **Note**: Never set it to less than **60 seconds**, or it is highly likely to be considered a malicious attack.
+Uptime: Do not close the Git Bash window while the logger is running, as it will terminate the process.
 
----
+🛠️ Roadmap
+[ ] Implement Price Alerts (e.g., notify when Divine price drops).
 
-## 5️⃣ Step 5: Daily Operation Workflow
+[ ] Add support for Unique Item price tracking.
 
-Every time you want to start recording data, follow these steps:
-
-1.  Open **Git Bash**.
-2.  Enter folder: `cd my-scraping-lab`.
-3.  Activate venv: `source venv/Scripts/activate`.
-4.  Run program: `python poe_analytics.py`.
-5.  Finish: Press **Ctrl + C** to stop, then `deactivate` to exit the environment.
+[ ] Auto-generate daily PDF market reports.
