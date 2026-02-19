@@ -56,7 +56,7 @@ def search_and_fetch():
         print("-" * 65)
 
         for item in fetch_data.get("result", []):
-            # 防錯檢查：逐層 .get 並提供預設值 {} 或 None
+            # Safeguard: Use chained .get() calls with default values ({}, None) to prevent errors.
             if item is None: continue
             
             listing = item.get("listing", {})
@@ -67,7 +67,7 @@ def search_and_fetch():
                 item_info = offer.get("item", {})
                 exch_info = offer.get("exchange", {})
                 
-                # 確保數字存在，避免除以零
+                # Ensure numbers exist to avoid division by zero.
                 want_amt = item_info.get("amount", 1)
                 have_amt = exch_info.get("amount", 0)
                 
