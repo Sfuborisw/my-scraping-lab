@@ -7,7 +7,7 @@ Ensure your Python environment is isolated and clean:
 
 Create Environment: python -m venv venv
 
-Activate (Git Bash): source venv/Scripts/activate
+Activate (Ubuntu Terminal): source venv/bin/activate
 
 Install Dependencies:
 
