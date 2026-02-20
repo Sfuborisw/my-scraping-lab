@@ -1,63 +1,74 @@
-💎 POE2 Market Analysis Tool (Fate of the Vaal)
-This project is a dedicated market monitoring system for Path of Exile 2. It automates data collection from the POE.Ninja API, logs the history into CSV files, and generates visual price trend charts.
+💎 POE2 Market Analysis Tool (Poe.ninja Edition)
+This project is a professional-grade market monitoring system for Path of Exile 2. It focuses on macro-economic trends by aggregating data from the Poe.ninja API, logging historical fluctuations, and generating visual analytics to help players make informed trading decisions.
 
-🚀 Getting Started (Step-by-Step)
+🚀 Project Overview
+The tool has evolved from a direct scraping attempt to a robust API-driven analysis suite. It tracks the exchange rates of various currencies (Exalted, Chaos, Alchemy, etc.) relative to the Divine Orb.
+
+Key Features:
+Automated Logging: Hourly data fetching with randomized jitters to prevent IP rate-limiting.
+
+Historical Accuracy: Stores data in a structured CSV format, handling mixed date formats seamlessly.
+
+Visual Analytics: Generates trend charts (Inverted Rates: 1 Divine = X Currency) and saves them in an organized plots/ directory.
+
+Clean Architecture: Minimalist codebase focused on stability and performance in a Linux/Ubuntu environment.
+
+🛠️ Getting Started
 1. Environment Setup
-Ensure your Python environment is isolated and clean:
-
-Create Environment: python -m venv venv
-
-Activate (Ubuntu Terminal): source venv/bin/activate
-
-Install Dependencies:
+Developed on Windows 11 using WARP (Ubuntu Terminal).
 
 Bash
+# Create Virtual Environment
+python -m venv venv
+
+# Activate Environment
+source venv/bin/activate
+
+# Install Required Packages
 pip install requests pandas matplotlib
-2. Run the Data Logger
-Start the automated process to record market data:
+2. Running the Data Collector
+The collector runs indefinitely until stopped.
 
-Command: python poe_analytics.py
+Bash
+python poe_analytics.py
+Interval: 1 hour + random jitter (3600-3630s).
 
-How it works: The script fetches currency prices for the Fate of the Vaal league every hour.
+Target: poe2_market_history.csv
 
-Storage: Data is appended to poe2_market_history.csv with timestamps.
+3. Generating Trend Visuals
+Generate charts for specific currencies by passing arguments:
 
-Stop: Press Ctrl + C to safely close the logger.
+Bash
+# General usage: python plot_trends.py [currency_id]
+python plot_trends.py exalted
+python plot_trends.py chaos
+Output: All charts are saved as PNG files in the /plots folder.
 
-3. Generate Trend Charts
-Once you have collected at least two data points, you can visualize the trends:
+Logic: Automatically inverts values to show the intuitive "1 Divine = X" format.
 
-Command: python plot_trends.py
+📂 Project Structure
+Plaintext
+.
+├── plots/                  # Generated trend charts (.png)
+├── venv/                   # Python virtual environment
+├── poe2_market_history.csv # The core database (CSV)
+├── poe_analytics.py        # Main data fetching script
+├── plot_trends.py          # Visualization & graphing tool
+├── README.md               # Documentation
+└── .gitignore              # Git ignore rules
 
-Function: It reads your CSV and opens a window showing the price curve for specific currencies (e.g., Divine Orbs or Alchemy Orbs).
+🔮 Future Vision: Market Web Portal
+The next major phase of this project is to move beyond the terminal. I am planning to develop a Web-based Dashboard to provide a more interactive experience:
 
-🔍 Development Notes
-How to Update the API URL
-If the league changes (e.g., to Settlers2), follow these steps:
+Live Web View: A responsive frontend to observe price movements in real-time.
 
-Open poe.ninja in your browser.
+Advanced Analytics: Integration of moving averages, volatility indicators, and "Buy/Sell" signals.
 
-Press F12 -> Network Tab -> Filter by overview or exchange.
+Comparison Engine: Overlaying multiple currency trends on a single interactive graph.
 
-Locate the JSON response and copy the Request URL.
+Data Export: Ability to filter historical data and export custom reports.
 
-Update the URL variable in poe_analytics.py.
+⚠️ Important Notes
+Data Integrity: If you have mixed date formats from previous versions, the current tool uses format='mixed' to ensure compatibility.
 
-Data Mapping Logic
-ID Mapping: Since the API returns short IDs (e.g., alch), the script uses an id_map dictionary to convert them into readable names like Alchemy Orb.
-
-Price Calculation: The primaryValue represents the relative value (e.g., 1 small currency unit per 1 Divine). The script calculates 1 / value to get the actual exchange ratio (e.g., 1 Divine = 500 Alch).
-
-⚠️ Best Practices & Warnings
-Rate Limiting: The default interval is 3600 seconds (1 hour). Do not set the wait time below 60 seconds, or you risk being IP-banned by POE.Ninja.
-
-Git Management: It is recommended to add *.csv to your .gitignore to avoid pushing large, outdated data files to GitHub.
-
-Uptime: Do not close the Git Bash window while the logger is running, as it will terminate the process.
-
-🛠️ Roadmap
-[ ] Implement Price Alerts (e.g., notify when Divine price drops).
-
-[ ] Add support for Unique Item price tracking.
-
-[ ] Auto-generate daily PDF market reports.
+Rate Limits: Do not manually decrease the fetching interval below 1 minute to avoid being flagged by Poe.ninja.
