@@ -2,92 +2,123 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import os
+import json
 from datetime import datetime
 
-# Page Configuration
-st.set_page_config(page_title="POE2 Market Pro Analytics", layout="wide")
+# --- Page Config ---
+st.set_page_config(page_title="POE2 Market Pro", layout="wide")
 
 CSV_FILE = "poe2_market_history.csv"
+JSON_FILE = "latest_market_data.json"
+NINJA_BASE_URL = "https://web.poecdn.com"
 
-def load_data():
+def load_market_data():
     if not os.path.exists(CSV_FILE):
-        return pd.DataFrame()
-    df = pd.read_csv(CSV_FILE)
-    df["Timestamp"] = pd.to_datetime(df["Timestamp"], format='mixed')
-    # 1 Divine = X Currency
-    df["Exchange_Rate"] = 1 / df["Price_in_Divine"]
-    return df
+        return pd.DataFrame(), {}
+    
+    try:
+        df = pd.read_csv(CSV_FILE, on_bad_lines='warn')
+        df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors='coerce')
+        df = df.dropna(subset=["Timestamp"])
+        # We store Price_in_Divine (e.g., Chaos = 0.00625)
+        # 1 / 0.00625 = 160 (Exchange Rate)
+        df["Exchange_Rate"] = 1 / df["Price_in_Divine"]
+        df["Inverse_Rate"] = df["Price_in_Divine"] # X to 1 Divine
+    except Exception as e:
+        st.error(f"CSV Error: {e}")
+        return pd.DataFrame(), {}
+    
+    icon_map = {}
+    if os.path.exists(JSON_FILE):
+        with open(JSON_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            # Combine core and general items for the icon map
+            all_items = data.get("core", {}).get("items", []) + data.get("items", [])
+            for item in all_items:
+                icon_map[item["id"]] = f"{NINJA_BASE_URL}{item['image']}"
+                
+    return df, icon_map
 
+# --- UI Setup ---
 st.title("💎 POE2 Market Pro Analytics")
-st.markdown("Advanced market trend tracking with interactive visualization.")
-
-df = load_data()
+df, icon_map = load_market_data()
 
 if df.empty:
-    st.warning("No data found. Ensure the scraper is running.")
+    st.warning("Please wait for data to be collected...")
 else:
-    # --- Sidebar Control ---
-    st.sidebar.header("Market Controls")
-    all_currencies = df["ID"].unique().tolist()
-
-    # Allow multiple selection for comparison
-    selected_ids = st.sidebar.multiselect(
-        "Select Currencies to Compare",
-        options=all_currencies,
-        default=["exalted", "chaos"] if "exalted" in all_currencies else all_currencies[:1]
+    # --- Sidebar Controls ---
+    st.sidebar.header("Navigation")
+    all_currencies = sorted(df["ID"].unique().tolist())
+    selected_id = st.sidebar.selectbox("Select Currency", all_currencies)
+    
+    st.sidebar.divider()
+    # THE TOGGLE BUTTON
+    view_mode = st.sidebar.radio(
+        "Display Mode:",
+        ["1 Divine ➔ X Item", "X Item ➔ 1 Divine"]
     )
 
-    # --- Metrics Section ---
-    st.subheader("Current Market Snapshots")
-    cols = st.columns(len(selected_ids) if selected_ids else 1)
+    # --- Data Logic based on Toggle ---
+    currency_df = df[df["ID"] == selected_id].sort_values("Timestamp")
+    latest_val = currency_df.iloc[-1]
+    divine_icon = icon_map.get("divine", "")
+    target_icon = icon_map.get(selected_id, "")
 
-    for i, cid in enumerate(selected_ids):
-        c_data = df[df["ID"] == cid].sort_values("Timestamp")
-        if len(c_data) >= 1:
-            latest_val = c_data.iloc[-1]["Exchange_Rate"]
-            delta = 0
-            if len(c_data) > 1:
-                delta = latest_val - c_data.iloc[-2]["Exchange_Rate"]
+    # --- Header Section ---
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 10])
+    
+    if view_mode == "1 Divine ➔ X Item":
+        display_price = latest_val["Exchange_Rate"]
+        left_icon, right_icon = divine_icon, target_icon
+        title_text = f"1 Divine = {display_price:.2f} {selected_id.upper()}"
+        y_label = f"Amount of {selected_id}"
+        chart_val = "Exchange_Rate"
+    else:
+        display_price = latest_val["Inverse_Rate"]
+        left_icon, right_icon = target_icon, divine_icon
+        title_text = f"1 {selected_id.upper()} = {display_price:.4f} Divine"
+        y_label = "Price in Divine"
+        chart_val = "Inverse_Rate"
 
-            cols[i].metric(
-                label=f"1 Div to {cid.upper()}",
-                value=f"{latest_val:.2f}",
-                delta=f"{delta:.2f}"
-            )
+    with col1:
+        if left_icon: st.image(left_icon, width=45)
+    with col2:
+        st.markdown("<h2 style='text-align: center; margin-top: 5px;'>➔</h2>", unsafe_allow_html=True)
+    with col3:
+        if right_icon: st.image(right_icon, width=45)
+    with col4:
+        st.subheader(title_text)
 
-    # --- Interactive Plotly Chart ---
-    st.divider()
-    st.subheader("Interactive Price History")
-
+    # --- Chart ---
     fig = go.Figure()
-
-    for cid in selected_ids:
-        c_data = df[df["ID"] == cid].sort_values("Timestamp")
-        fig.add_trace(go.Scatter(
-            x=c_data["Timestamp"],
-            y=c_data["Exchange_Rate"],
-            mode='lines+markers',
-            name=cid.capitalize(),
-            hovertemplate='%{x}<br>Rate: %{y:.2f} ' + cid.capitalize()
-        ))
+    fig.add_trace(go.Scatter(
+        x=currency_df["Timestamp"], 
+        y=currency_df[chart_val],
+        mode='lines+markers',
+        line=dict(color='#00ffcc', width=4),
+        marker=dict(size=8, color='#ffffff'),
+        hovertemplate='%{y:.4f}<extra></extra>'
+    ))
 
     fig.update_layout(
-        hovermode="x unified",
         template="plotly_dark",
-        xaxis_title="Time (PST)",
-        yaxis_title="Exchange Rate",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        margin=dict(l=20, r=20, t=50, b=20),
-        height=500
+        xaxis_title="Time (UTC)",
+        yaxis_title=y_label,
+        hovermode="x unified",
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        margin=dict(l=0, r=0, t=20, b=0)
     )
-
-    # Show the interactive plot
+    
     st.plotly_chart(fig, use_container_width=True)
 
-    # --- Moving Average Logic (Extra Detail) ---
-    if st.sidebar.checkbox("Show 24h Moving Average"):
-        st.info("💡 Moving averages help filter out 'market noise' to show long-term trends.")
-        # Note: This requires more data points to be meaningful
-
-# Footer info
-st.caption(f"Backend Synchronized | Last Update: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    # --- Quick Info Metrics ---
+    st.divider()
+    m1, m2, m3 = st.columns(3)
+    with m1:
+        st.metric("Latest Rate", f"{display_price:.4f}")
+    with m2:
+        # Calculate simple 24h change (if data exists)
+        if len(currency_df) > 1:
+            change = display_price - currency_df.iloc[-2][chart_val]
+            st.metric("Last Move", f"{change:.4f}", delta=f"{change:.6f}")
