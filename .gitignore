@@ -36,3 +36,5 @@ Thumbs.db
 # --- Environment Variables (Security) ---
 .env
 .envrc
+
+*.json

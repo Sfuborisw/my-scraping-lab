@@ -3,10 +3,12 @@ import requests
 import pandas as pd
 import time
 import os
+import json
 from datetime import datetime
 
 URL = "https://poe.ninja/poe2/api/economy/exchange/current/overview?league=Fate+of+the+Vaal&type=Currency"
 CSV_FILE = "poe2_market_history.csv"
+JSON_DEBUG_FILE = "latest_market_data.json" # File to store the latest raw response
 
 def fetch_and_save():
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -14,7 +16,14 @@ def fetch_and_save():
     try:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching POE2 data...")
         response = requests.get(URL, headers=headers)
+        response.raise_for_status()
         data = response.json()
+
+        # Save the raw JSON data for inspection ---
+        with open(JSON_DEBUG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4)
+        print(f"💾 Raw JSON saved to {JSON_DEBUG_FILE} for inspection.")
+
         lines = data.get("lines", [])
 
         if not lines:
@@ -29,6 +38,7 @@ def fetch_and_save():
                 "Timestamp": timestamp,
                 "ID": line.get("id"),
                 "Price_in_Divine": line.get("primaryValue"),
+                "Trade_Count": line.get("count", 0) # Added trade count based on your interest
             })
 
         df_new = pd.DataFrame(extracted)
@@ -45,12 +55,12 @@ def fetch_and_save():
 if __name__ == "__main__":
     print("--- POE2 Market Logger Started ---")
     print(f"Targeting CSV: {CSV_FILE}")
+    print(f"Debug JSON: {JSON_DEBUG_FILE}")
     print("Press Ctrl+C to stop the script.")
 
     try:
         while True:
             fetch_and_save()
-            
             # Wait for 1 hour with a small random jitter
             wait_time = 3600 + random.randint(1, 30)
             print(f"💤 Next update in {wait_time} seconds...")
