@@ -38,3 +38,4 @@ Thumbs.db
 .envrc
 
 *.json
+!gold_tax.json

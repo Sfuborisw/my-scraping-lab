@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "last_updated": "2026-02-22",
+    "description": "Gold fee per unit when purchasing the item via currency exchange.",
+    "note": "Fee calculation: Total Gold = Quantity * gold_fee_per_unit"
+  },
+  "tax_rates": {
+    "mirror": 25000,
+    "divine": 800,
+    "exalted": 120,
+    "greater-exalted-orb": 360,
+    "perfect-exalted-orb": 1000,
+    "perfect-jewellers-orb": 1000,
+    "chaos": 160,
+    "greater-chaos-orb": 500,
+    "perfect-chaos-orb": 1500,
+    "annul": 1000,
+    "alch": 200,
+    "chance": 1000,
+    "regal": 120,
+    "vaal": 160
+  }
+}
