@@ -68,6 +68,18 @@ else:
         ["1 Divine ➔ X Item", "X Item ➔ 1 Divine"]
     )
 
+    st.sidebar.subheader("Arbitrage Calculator")
+    d_to_e = st.sidebar.number_input("D to E Ratio", value=370.0)
+    e_to_a = st.sidebar.number_input("E to A Ratio", value=140.0)
+    a_to_d = st.sidebar.number_input("A to D Ratio", value=2.0)
+
+    initial_d = 10.0
+    total_e = initial_d * d_to_e
+    total_a = total_e / e_to_a
+    final_d = total_a * a_to_d
+
+    profit_pct = (final_d - initial_d) / initial_d
+
     currency_df = df[df["ID"] == selected_id].sort_values("Timestamp")
     latest_val = currency_df.iloc[-1]
 
@@ -139,3 +151,4 @@ else:
         if tax != "N/A":
             total_tax = tax * 100 # Example for bulk buy
             st.metric("Gold for 100 Units", f"{total_tax:,}")
+    
