@@ -57,7 +57,7 @@ st.title("💎 POE2 Market Pro Analytics")
 if df.empty:
     st.warning("Please wait for data to be collected... Check if poe2_market_history.csv exists.")
 else:
-    # --- Sidebar ---
+    # --- 1. Data Processing (Move this up!) ---
     st.sidebar.header("Navigation")
     all_currencies = sorted(df["ID"].unique().tolist())
     selected_id = st.sidebar.selectbox("Select Currency", all_currencies)
@@ -68,26 +68,55 @@ else:
         ["1 Divine ➔ X Item", "X Item ➔ 1 Divine"]
     )
 
-    st.sidebar.subheader("Arbitrage Calculator")
+    # Define these BEFORE the calculator needs them
+    currency_df = df[df["ID"] == selected_id].sort_values("Timestamp")
+    latest_val = currency_df.iloc[-1]
+
+    # --- 2. Sidebar: Arbitrage Calculator Section ---
+    st.sidebar.divider()
+    st.sidebar.header("📊 Arbitrage Calculator")
+
+    base_investment = st.sidebar.number_input("Investment (Divine)", value=10.0, step=1.0)
     d_to_e = st.sidebar.number_input("D to E Ratio", value=370.0)
     e_to_a = st.sidebar.number_input("E to A Ratio", value=140.0)
     a_to_d = st.sidebar.number_input("A to D Ratio", value=2.0)
 
-    initial_d = 10.0
-    total_e = initial_d * d_to_e
+    # Logic
+    total_e = base_investment * d_to_e
     total_a = total_e / e_to_a
     final_d = total_a * a_to_d
+    profit_val = final_d - base_investment
+    profit_pct = (profit_val / base_investment) if base_investment != 0 else 0
 
-    profit_pct = (final_d - initial_d) / initial_d
+    # Gold Estimation
+    tax_e = GOLD_TAX_TABLE.get("exalted", 100)
+    tax_a = GOLD_TAX_TABLE.get("alch", 100) 
+    tax_d = GOLD_TAX_TABLE.get("divine", 100)
+    total_gold_cost = (total_e * tax_e) + (total_a * tax_a) + (final_d * tax_d)
 
-    currency_df = df[df["ID"] == selected_id].sort_values("Timestamp")
-    latest_val = currency_df.iloc[-1]
+    # Display Sidebar Results
+    st.sidebar.subheader("Results")
+    if final_d > base_investment:
+        st.sidebar.success(f"📈 Profit: {profit_pct:.1%}")
+    else:
+        st.sidebar.error(f"📉 Loss: {profit_pct:.1%}")
 
-    # --- Icons ---
+    st.sidebar.write(f"Final Amount: **{final_d:.4f} D**")
+    st.sidebar.write(f"Net Profit: **{profit_val:.4f} D**")
+    st.sidebar.divider()
+    st.sidebar.subheader("💰 Estimated Gold Fee")
+    st.sidebar.write(f"Total Gold Needed: **{total_gold_cost:,.0f}**")
+
+    if profit_val > 0:
+        gold_per_1d = total_gold_cost / profit_val
+        st.sidebar.info(f"Efficiency: **{gold_per_1d:,.0f} Gold / 1D Profit**")
+    else:
+        st.sidebar.warning("No profit to calculate efficiency.")
+
+    # --- 3. Main Page UI (Icons & Header) ---
     divine_icon = icon_map.get("divine", "")
     target_icon = icon_map.get(selected_id, "")
 
-    # --- Header Setup ---
     col1, col2, col3, col4 = st.columns([1, 1, 1, 10])
 
     if view_mode == "1 Divine ➔ X Item":
@@ -112,7 +141,7 @@ else:
     with col4:
         st.subheader(title_text)
 
-    # --- Plotly Chart ---
+    # --- 4. Plotly Chart ---
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=currency_df["Timestamp"],
@@ -134,7 +163,7 @@ else:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    # --- Metrics Section ---
+    # --- 5. Metrics Section ---
     st.divider()
     m1, m2, m3, m4 = st.columns(4)
     with m1:
@@ -144,11 +173,9 @@ else:
             change = display_price - currency_df.iloc[-2][chart_val]
             st.metric("Last Move", f"{change:.4f}", delta=f"{change:.6f}")
     with m3:
-        # GET GOLD TAX FROM YOUR JSON
         tax = GOLD_TAX_TABLE.get(selected_id.lower(), "N/A")
         st.metric("Gold Fee (per Unit)", f"{tax}")
     with m4:
         if tax != "N/A":
-            total_tax = tax * 100 # Example for bulk buy
-            st.metric("Gold for 100 Units", f"{total_tax:,}")
-    
+            total_tax_display = tax * 100
+            st.metric("Gold for 100 Units", f"{total_tax_display:,}")
