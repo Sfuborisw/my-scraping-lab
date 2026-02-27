@@ -76,10 +76,12 @@ else:
     st.sidebar.divider()
     st.sidebar.header("📊 Arbitrage Calculator")
 
+    auto_ratio = float(latest_val["Exchange_Rate"])
+
     base_investment = st.sidebar.number_input("Investment (Divine)", value=10.0, step=1.0)
-    d_to_e = st.sidebar.number_input("D to E Ratio", value=370.0)
-    e_to_a = st.sidebar.number_input("E to A Ratio", value=140.0)
-    a_to_d = st.sidebar.number_input("A to D Ratio", value=2.0)
+    d_to_e = st.sidebar.number_input("D to E Ratio", value=auto_ratio)
+    e_to_a = st.sidebar.number_input("E to ITEM Ratio", value=140.0)
+    a_to_d = st.sidebar.number_input("ITEM to D Ratio", value=2.0)
 
     # Logic
     total_e = base_investment * d_to_e
